@@ -33,7 +33,7 @@ input {
 
 .studio-shell {
   display: grid;
-  grid-template-columns: minmax(15rem, min(25vw, 24rem)) minmax(0, 1fr);
+  grid-template-columns: minmax(15rem, 25vw) minmax(0, 1fr);
   block-size: 100dvh;
   overflow: clip;
 }
@@ -80,6 +80,7 @@ input {
 }
 
 .studio-preview-frame {
+  position: relative;
   aspect-ratio: 9 / 16;
   inline-size: min(100cqw, 56.25cqh);
   overflow: clip;

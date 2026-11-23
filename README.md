@@ -11,13 +11,14 @@ npm install
 npm run dev
 ```
 
-Remotion's composition studio is available with `npm run studio`. The current composition is a static setup placeholder; MIDI parsing, audio synthesis, sequence planning, and video export behavior are not implemented yet.
+Remotion's composition studio is available with `npm run studio`. Run `npm run typecheck` to check TypeScript.
 
-Run `npm run typecheck` to check TypeScript. Render output is written to the ignored `out/` directory with `npm run render`.
+## Preview flow
 
-## Current limits
+- Select a local `.mid` or `.midi` file and press **Process**. Parsing and offline audio synthesis happen in the browser.
+- The Player runs for the MIDI duration. Waveform, oscillator, and radial bars use the same frame timeline as its audio.
+- Random mode chooses seeded visualizer segments. Segment length and seed are adjustable in the controls.
+- Preview synthesis uses local FluidR3 General MIDI samples for all 128 melodic programs and the 47 available GM drum notes. Nine pitch roots per instrument keep the bundled bank compact; Tone.Sampler transposes between them. The rendered WAV is 44.1 kHz mono, 16-bit PCM. See [sample credits](assets/audio/samples/FluidR3_GM/ATTRIBUTION.md).
+- `npm run render` still renders the default composition props; exporting the currently processed MIDI is not wired yet.
 
-- The MIDI picker only records the selected filename. It does not parse or upload the file.
-- The Remotion Player uses a 30 fps, 1080×1920 placeholder composition with no audio.
-- No General MIDI sound bank is bundled. Tone.js instrument mapping and offline synthesis still need to be implemented.
-- All Remotion packages are pinned to the same exact version for reproducible installs.
+Render output is written to the ignored `out/` directory. All Remotion packages are pinned to the same exact version for reproducible installs.
