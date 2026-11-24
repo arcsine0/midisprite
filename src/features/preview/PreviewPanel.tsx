@@ -10,6 +10,7 @@ import {
   type VisualizerId,
 } from "../../visualizers/registry";
 import { VideoComposition } from "../../remotion/compositions/VideoComposition";
+import type { BackgroundId } from "../../backgrounds/registry";
 
 type Props = {
   audioUrl: string | null;
@@ -19,6 +20,8 @@ type Props = {
   segments: VisualizerSegment[];
   visualizerId: VisualizerId;
   waveform: number[];
+  spectrum: number[];
+  backgroundId: BackgroundId;
 };
 
 export function PreviewPanel({
@@ -29,6 +32,8 @@ export function PreviewPanel({
   segments,
   visualizerId,
   waveform,
+  spectrum,
+  backgroundId,
 }: Props) {
   const playerRef = useRef<PlayerRef>(null);
   const [activeVisualizer, setActiveVisualizer] = useState(visualizerId);
@@ -72,7 +77,15 @@ export function PreviewPanel({
           durationInFrames={durationInFrames}
           fps={30}
           controls
-          inputProps={{ audioUrl, notes, segments, visualizerId, waveform }}
+          inputProps={{
+            audioUrl,
+            notes,
+            segments,
+            visualizerId,
+            waveform,
+            spectrum,
+            backgroundId,
+          }}
           style={{ height: "100%", width: "100%" }}
         />
       </div>

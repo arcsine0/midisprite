@@ -1,51 +1,69 @@
+import { SPECTRUM_BANDS } from "../../core/project/audioFeatures";
+import { NeonGlowDefs } from "../NeonGlowDefs";
 import type { VisualizerProps } from "../types";
 
-const BAR_COUNT = 32;
-
-export function RadialBarsVisualizer({ notes, frame, fps }: VisualizerProps) {
-  const time = frame / fps;
-  const levels = Array.from({ length: BAR_COUNT }, () => 0);
-
-  for (const note of notes) {
-    if (
-      time < note.startSeconds ||
-      time >= note.startSeconds + note.durationSeconds
-    )
-      continue;
-    const band = Math.max(
-      0,
-      Math.min(BAR_COUNT - 1, Math.floor((note.midi / 128) * BAR_COUNT)),
-    );
-    levels[band] = Math.max(levels[band], note.velocity);
-  }
+export function RadialBarsVisualizer({ spectrum, frame }: VisualizerProps) {
+  const start = frame * SPECTRUM_BANDS;
+  const centerX = 540;
+  const centerY = 960;
+  const innerRadius = 270;
 
   return (
     <svg aria-hidden="true" viewBox="0 0 1080 1920" className="h-full w-full">
+      <defs>
+        <NeonGlowDefs id="radial-glow" />
+      </defs>
       <circle
-        cx="540"
-        cy="960"
-        r="270"
+        cx={centerX}
+        cy={centerY}
         fill="none"
-        stroke="#b8f36b"
+        r={innerRadius - 28}
+        stroke="#00d6ce"
         strokeOpacity="0.18"
-        strokeWidth="4"
+        strokeWidth="3"
       />
-      {levels.map((level, index) => {
-        const angle = (index / BAR_COUNT) * Math.PI * 2 - Math.PI / 2;
-        const innerRadius = 300;
-        const outerRadius = innerRadius + 80 + level * 420;
+      <circle
+        cx={centerX}
+        cy={centerY}
+        fill="#031512"
+        r={innerRadius - 48}
+        stroke="#00f1d5"
+        strokeOpacity="0.7"
+        strokeWidth="5"
+      />
+      {Array.from({ length: SPECTRUM_BANDS }, (_, index) => {
+        const level = spectrum[start + index] ?? 0;
+        const angle = (index / SPECTRUM_BANDS) * Math.PI * 2 - Math.PI / 2;
+        const visualLevel = Math.pow(level, 0.72);
+        const outerRadius = innerRadius + visualLevel * 360;
+        const x1 = centerX + Math.cos(angle) * innerRadius;
+        const y1 = centerY + Math.sin(angle) * innerRadius;
+        const x2 = centerX + Math.cos(angle) * outerRadius;
+        const y2 = centerY + Math.sin(angle) * outerRadius;
+
         return (
-          <line
-            key={index}
-            x1={540 + Math.cos(angle) * innerRadius}
-            y1={960 + Math.sin(angle) * innerRadius}
-            x2={540 + Math.cos(angle) * outerRadius}
-            y2={960 + Math.sin(angle) * outerRadius}
-            stroke="#b8f36b"
-            strokeLinecap="round"
-            strokeOpacity={0.2 + level * 0.8}
-            strokeWidth="14"
-          />
+          <g filter="url(#radial-glow)" key={index}>
+            <line
+              stroke="#00f1d5"
+              strokeLinecap="round"
+              strokeOpacity={visualLevel * 0.3}
+              strokeWidth="28"
+              x1={x1}
+              x2={x2}
+              y1={y1}
+              y2={y2}
+            />
+            <line
+              stroke="#a5fff2"
+              strokeLinecap="round"
+              strokeOpacity={0.32 + visualLevel * 0.68}
+              strokeWidth="10"
+              x1={x1}
+              x2={x2}
+              y1={y1}
+              y2={y2}
+            />
+          </g>
         );
       })}
     </svg>

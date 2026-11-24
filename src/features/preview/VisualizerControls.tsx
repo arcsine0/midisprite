@@ -2,6 +2,11 @@ import {
   visualizerRegistry,
   type VisualizerId,
 } from "../../visualizers/registry";
+import {
+  backgroundRegistry,
+  type BackgroundId,
+} from "../../backgrounds/registry";
+import { instrumentSets, type InstrumentSetId } from "../audio/instrumentSets";
 
 type Props = {
   visualizerId: VisualizerId;
@@ -12,6 +17,12 @@ type Props = {
   onSegmentSecondsChange: (seconds: number) => void;
   seed: number;
   onSeedChange: (seed: number) => void;
+  instrumentSetId: InstrumentSetId;
+  onInstrumentSetChange: (id: InstrumentSetId) => void;
+  instrumentSetBusy: boolean;
+  instrumentSetError?: string;
+  backgroundId: BackgroundId;
+  onBackgroundChange: (id: BackgroundId) => void;
 };
 
 export function VisualizerControls({
@@ -23,6 +34,12 @@ export function VisualizerControls({
   onSegmentSecondsChange,
   seed,
   onSeedChange,
+  instrumentSetId,
+  onInstrumentSetChange,
+  instrumentSetBusy,
+  instrumentSetError,
+  backgroundId,
+  onBackgroundChange,
 }: Props) {
   return (
     <section aria-labelledby="visualizer-heading" className="mt-8 space-y-3">
@@ -44,11 +61,45 @@ export function VisualizerControls({
         }
         value={visualizerId}
       >
-        {visualizerRegistry.map(({ id, label }) => (
-          <option key={id} value={id}>
-            {label}
-          </option>
-        ))}
+        {Array.from(new Set(visualizerRegistry.map(({ group }) => group))).map(
+          (group) => (
+            <optgroup key={group} label={group}>
+              {visualizerRegistry
+                .filter((visualizer) => visualizer.group === group)
+                .map(({ id, label }) => (
+                  <option key={id} value={id}>
+                    {label}
+                  </option>
+                ))}
+            </optgroup>
+          ),
+        )}
+      </select>
+
+      <label className="label" htmlFor="background-style">
+        Background
+      </label>
+      <select
+        className="select select-sm w-full"
+        id="background-style"
+        onChange={(event) =>
+          onBackgroundChange(event.currentTarget.value as BackgroundId)
+        }
+        value={backgroundId}
+      >
+        {Array.from(new Set(backgroundRegistry.map(({ group }) => group))).map(
+          (group) => (
+            <optgroup key={group} label={group}>
+              {backgroundRegistry
+                .filter((background) => background.group === group)
+                .map(({ id, label }) => (
+                  <option key={id} value={id}>
+                    {label}
+                  </option>
+                ))}
+            </optgroup>
+          ),
+        )}
       </select>
 
       <label
@@ -106,6 +157,38 @@ export function VisualizerControls({
           </div>
         </div>
       )}
+
+      <div className="space-y-2 border-t border-base-300 pt-4">
+        <label className="label" htmlFor="instrument-set">
+          Instrument set
+        </label>
+        <select
+          className="select select-sm w-full"
+          disabled={instrumentSetBusy}
+          id="instrument-set"
+          name="instrument-set"
+          onChange={(event) =>
+            onInstrumentSetChange(event.currentTarget.value as InstrumentSetId)
+          }
+          value={instrumentSetId}
+        >
+          {instrumentSets.map(({ id, label }) => (
+            <option key={id} value={id}>
+              {label}
+            </option>
+          ))}
+        </select>
+        {instrumentSetBusy && (
+          <p className="text-xs text-base-content/60">
+            Updating preview audio…
+          </p>
+        )}
+        {instrumentSetError && (
+          <p className="text-xs text-error" role="alert">
+            {instrumentSetError}
+          </p>
+        )}
+      </div>
     </section>
   );
 }

@@ -1,15 +1,19 @@
 import { useState, type ChangeEvent } from "react";
 import { synthesizeMidi } from "../audio/synthesizeMidi";
+import type { InstrumentSetId } from "../audio/instrumentSets";
 import { parseMidiFile } from "./parseMidi";
 import type { ProcessedMidi } from "./types";
 
 type Props = {
   onProcessed: (midi: ProcessedMidi) => void;
+  onProcessingChange: (processing: boolean) => void;
+  instrumentSetId: InstrumentSetId;
+  disabled: boolean;
 };
 
 type ProgressState = {
   percent: number;
-  stage: "file" | "midi" | "audio" | "render" | "ready";
+  stage: "file" | "midi" | "audio" | "render" | "analysis" | "ready";
 };
 
 const PROCESS_STEPS = [
@@ -17,9 +21,15 @@ const PROCESS_STEPS = [
   { id: "midi", label: "MIDI" },
   { id: "audio", label: "AUDIO" },
   { id: "render", label: "RENDER" },
+  { id: "analysis", label: "ANALYZE" },
 ] as const;
 
-export function MidiImportPanel({ onProcessed }: Props) {
+export function MidiImportPanel({
+  onProcessed,
+  onProcessingChange,
+  instrumentSetId,
+  disabled,
+}: Props) {
   const [file, setFile] = useState<File>();
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string>();
@@ -43,6 +53,7 @@ export function MidiImportPanel({ onProcessed }: Props) {
     const startedAt = performance.now();
     let stage: ProgressState["stage"] = "file";
     setProcessing(true);
+    onProcessingChange(true);
     setError(undefined);
     setProgress({ percent: 5, stage });
     console.info("[Midisprite] MIDI processing started", {
@@ -78,6 +89,7 @@ export function MidiImportPanel({ onProcessed }: Props) {
       });
       const audio = await synthesizeMidi(
         project,
+        instrumentSetId,
         (loaded, total) => {
           const percent = 50 + Math.floor((25 * loaded) / total);
           setProgress({ percent, stage });
@@ -95,9 +107,14 @@ export function MidiImportPanel({ onProcessed }: Props) {
             durationSeconds: project.durationSeconds,
           });
         },
+        () => {
+          stage = "analysis";
+          setProgress({ percent: 85, stage });
+        },
       );
       console.info("[Midisprite] Audio synthesis completed", {
         waveformSamples: audio.waveform.length,
+        spectrumSamples: audio.spectrum.length,
         elapsedMs: Math.round(performance.now() - startedAt),
       });
 
@@ -126,6 +143,7 @@ export function MidiImportPanel({ onProcessed }: Props) {
       );
     } finally {
       setProcessing(false);
+      onProcessingChange(false);
     }
   }
 
@@ -143,7 +161,7 @@ export function MidiImportPanel({ onProcessed }: Props) {
       <input
         accept=".mid,.midi,audio/midi,audio/x-midi"
         className="file-input file-input-sm w-full"
-        disabled={processing}
+        disabled={processing || disabled}
         id="midi-file"
         name="midi"
         onChange={selectFile}
@@ -152,7 +170,7 @@ export function MidiImportPanel({ onProcessed }: Props) {
       />
       <button
         className="btn btn-primary btn-sm w-full"
-        disabled={!file || processing}
+        disabled={!file || processing || disabled}
         onClick={processFile}
         type="button"
       >
@@ -168,12 +186,15 @@ export function MidiImportPanel({ onProcessed }: Props) {
                 ? "Synthesizing audio, 50% of steps"
                 : progress.stage === "render"
                   ? "Rendering offline audio"
-                  : `${progress.stage}, ${progress.percent}%`
+                  : progress.stage === "analysis"
+                    ? "Analyzing synthesized audio"
+                    : `${progress.stage}, ${progress.percent}%`
             }
             className="progress progress-primary h-1.5 w-full"
             max={100}
             value={
               progress.stage === "render" ||
+              progress.stage === "analysis" ||
               (progress.stage === "audio" && progress.percent === 50)
                 ? undefined
                 : progress.percent
@@ -214,7 +235,9 @@ export function MidiImportPanel({ onProcessed }: Props) {
             <span className="font-mono text-[10px] tabular-nums">
               {progress.stage === "render"
                 ? "RENDERING"
-                : `${progress.percent}%`}
+                : progress.stage === "analysis"
+                  ? "ANALYZING"
+                  : `${progress.percent}%`}
             </span>
           </div>
         </div>

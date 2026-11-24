@@ -1,40 +1,46 @@
 import { loaded, Offline, Sampler } from "tone";
-import programNames from "../../../assets/audio/samples/FluidR3_GM/names.json";
 import type { MidiProject } from "../../core/project/midiProject";
+import { analyzeAudio } from "./analyzeAudio";
+import { getInstrumentSample, type InstrumentSetId } from "./instrumentSets";
 
-const WAVEFORM_FPS = 30;
 const SAMPLE_RATE = 44100;
 const sampleAssets = import.meta.glob<string>(
   "../../../assets/audio/samples/FluidR3_GM/*-mp3/*.mp3",
   { import: "default", query: "?url" },
 );
+const availableSamples = new Set(
+  Object.keys(sampleAssets).map((path) =>
+    path.split("/").at(-2)!.replace(/-mp3$/, ""),
+  ),
+);
 
 export async function synthesizeMidi(
   project: MidiProject,
+  instrumentSetId: InstrumentSetId,
   onSampleProgress?: (loaded: number, total: number) => void,
   onRenderStart?: () => void,
+  onAnalysisStart?: () => void,
 ) {
   const duration = project.durationSeconds + 0.2;
-  const programs = new Set(
+  const instruments = new Set(
     project.notes
       .filter((note) => note.channel !== 9)
-      .map((note) => note.program),
+      .map((note) =>
+        getInstrumentSample(note, instrumentSetId, availableSamples),
+      ),
   );
   const hasDrums = project.notes.some((note) => note.channel === 9);
-  const samplerTotal = programs.size + Number(hasDrums);
+  const samplerTotal = instruments.size + Number(hasDrums);
   let loadedSamplers = 0;
   const onSamplerLoaded = () =>
     onSampleProgress?.(++loadedSamplers, samplerTotal);
   const rendered = await Offline(
     async () => {
-      const samplers = new Map<number, Sampler>();
-      for (const program of programs) {
-        if (!programNames[program]) {
-          throw new Error(`Unsupported MIDI instrument: ${program}.`);
-        }
+      const samplers = new Map<string, Sampler>();
+      for (const instrument of instruments) {
         samplers.set(
-          program,
-          new Sampler(await urlsFor(`${programNames[program]}-mp3`), {
+          instrument,
+          new Sampler(await urlsFor(`${instrument}-mp3`), {
             attack: 0.005,
             release: 0.12,
             onload: onSamplerLoaded,
@@ -59,7 +65,7 @@ export async function synthesizeMidi(
           drums?.triggerAttack(note.noteName, note.startSeconds, note.velocity);
         } else {
           samplers
-            .get(note.program)
+            .get(getInstrumentSample(note, instrumentSetId, availableSamples))
             ?.triggerAttackRelease(
               note.noteName,
               note.durationSeconds,
@@ -85,24 +91,23 @@ export async function synthesizeMidi(
   if (!audioBuffer) throw new Error("Could not synthesize this MIDI file.");
 
   const samples = audioBuffer.getChannelData(0);
-  const waveform = Array.from(
-    { length: Math.ceil(project.durationSeconds * WAVEFORM_FPS) },
-    (_, frame) => {
-      const start = Math.floor((frame * SAMPLE_RATE) / WAVEFORM_FPS);
-      const end = Math.min(samples.length, start + SAMPLE_RATE / WAVEFORM_FPS);
-      let peak = 0;
-      for (let sample = start; sample < end; sample++) {
-        peak = Math.max(peak, Math.abs(samples[sample]));
-      }
-      return peak;
-    },
+  onAnalysisStart?.();
+  console.info("[Midisprite] Audio feature analysis started");
+  const audioFeatures = await analyzeAudio(
+    samples,
+    SAMPLE_RATE,
+    project.durationSeconds,
   );
+  console.info("[Midisprite] Audio feature analysis completed", {
+    waveformSamples: audioFeatures.waveform.length,
+    spectrumBands: audioFeatures.spectrum.length,
+  });
 
   return {
     audioUrl: URL.createObjectURL(
       new Blob([encodeWav(samples)], { type: "audio/wav" }),
     ),
-    waveform,
+    ...audioFeatures,
   };
 }
 

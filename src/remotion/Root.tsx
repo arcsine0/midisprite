@@ -6,8 +6,10 @@ const defaultProps: VideoCompositionProps = {
   audioUrl: null,
   notes: [],
   segments: [],
-  visualizerId: "waveform",
+  visualizerId: "bars",
+  backgroundId: "deep-field",
   waveform: [],
+  spectrum: [],
 };
 
 export function RemotionRoot() {

@@ -4,4 +4,5 @@ export type ProcessedMidi = {
   project: MidiProject;
   audioUrl: string;
   waveform: number[];
+  spectrum: number[];
 };
