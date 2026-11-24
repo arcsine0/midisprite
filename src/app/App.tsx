@@ -4,11 +4,13 @@ import { synthesizeMidi } from "../features/audio/synthesizeMidi";
 import type { InstrumentSetId } from "../features/audio/instrumentSets";
 import { MidiImportPanel } from "../features/midi-import/MidiImportPanel";
 import type { ProcessedMidi } from "../features/midi-import/types";
-import type { BackgroundId } from "../backgrounds/registry";
-import { planVisualizerSequence } from "../features/visualizer-sequence/planSequence";
+import { planModuleSequence } from "../visualizers/modules/planModules";
+import {
+  DEFAULT_MODULES,
+  type ModuleIds,
+} from "../visualizers/modules/registry";
 import { PreviewPanel } from "../features/preview/PreviewPanel";
 import { VisualizerControls } from "../features/preview/VisualizerControls";
-import type { VisualizerId } from "../visualizers/registry";
 
 export function App() {
   const [processedMidi, setProcessedMidi] = useState<ProcessedMidi>();
@@ -16,8 +18,7 @@ export function App() {
   const [midiProcessing, setMidiProcessing] = useState(false);
   const [instrumentSetBusy, setInstrumentSetBusy] = useState(false);
   const [instrumentSetError, setInstrumentSetError] = useState<string>();
-  const [visualizerId, setVisualizerId] = useState<VisualizerId>("lightshow");
-  const [backgroundId, setBackgroundId] = useState<BackgroundId>("deep-field");
+  const [modules, setModules] = useState<ModuleIds>(DEFAULT_MODULES);
   const [randomize, setRandomize] = useState(false);
   const [segmentSeconds, setSegmentSeconds] = useState(6);
   const [seed, setSeed] = useState(1);
@@ -65,11 +66,7 @@ export function App() {
   const segments = useMemo(
     () =>
       randomize
-        ? planVisualizerSequence(
-            durationInFrames,
-            segmentSeconds * VIDEO_FPS,
-            seed,
-          )
+        ? planModuleSequence(durationInFrames, segmentSeconds * VIDEO_FPS, seed)
         : [],
     [durationInFrames, randomize, segmentSeconds, seed],
   );
@@ -95,7 +92,17 @@ export function App() {
             onProcessingChange={setMidiProcessing}
           />
           <VisualizerControls
+            modules={modules}
+            onModuleChange={(slot, id) =>
+              setModules(
+                (current) =>
+                  current.map((module, index) =>
+                    index === slot ? id : module,
+                  ) as ModuleIds,
+              )
+            }
             onRandomizeChange={setRandomize}
+            randomize={randomize}
             onInstrumentSetChange={changeInstrumentSet}
             onSeedChange={(value) =>
               setSeed(
@@ -109,16 +116,11 @@ export function App() {
                   : 6,
               )
             }
-            onVisualizerChange={setVisualizerId}
             instrumentSetBusy={instrumentSetBusy || midiProcessing}
             instrumentSetError={instrumentSetError}
             instrumentSetId={instrumentSetId}
-            backgroundId={backgroundId}
-            onBackgroundChange={setBackgroundId}
-            randomize={randomize}
             seed={seed}
             segmentSeconds={segmentSeconds}
-            visualizerId={visualizerId}
           />
         </div>
       </aside>
@@ -126,12 +128,11 @@ export function App() {
         audioUrl={processedMidi?.audioUrl ?? null}
         durationInFrames={durationInFrames}
         notes={processedMidi?.project.notes ?? []}
-        randomize={randomize}
-        segments={segments}
-        visualizerId={visualizerId}
+        tempos={processedMidi?.project.tempos ?? []}
+        modules={modules}
+        moduleSegments={segments}
         waveform={processedMidi?.waveform ?? []}
         spectrum={processedMidi?.spectrum ?? []}
-        backgroundId={backgroundId}
       />
     </main>
   );

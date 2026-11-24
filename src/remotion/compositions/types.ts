@@ -1,14 +1,13 @@
-import type { MidiNote } from "../../core/project/midiProject";
-import type { VisualizerSegment } from "../../features/visualizer-sequence/planSequence";
-import type { VisualizerId } from "../../visualizers/registry";
-import type { BackgroundId } from "../../backgrounds/registry";
+import type { MidiNote, MidiTempo } from "../../core/project/midiProject";
+import type { ModuleSegment } from "../../visualizers/modules/planModules";
+import type { ModuleIds } from "../../visualizers/modules/registry";
 
 export type VideoCompositionProps = {
   notes: MidiNote[];
+  tempos: MidiTempo[];
   waveform: number[];
   spectrum: number[];
   audioUrl: string | null;
-  visualizerId: VisualizerId;
-  segments: VisualizerSegment[];
-  backgroundId: BackgroundId;
+  modules: ModuleIds;
+  moduleSegments: ModuleSegment[];
 };

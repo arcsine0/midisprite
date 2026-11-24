@@ -1,13 +1,14 @@
 import { Composition } from "remotion";
 import { VideoComposition } from "./compositions/VideoComposition";
 import type { VideoCompositionProps } from "./compositions/types";
+import { DEFAULT_MODULES } from "../visualizers/modules/registry";
 
 const defaultProps: VideoCompositionProps = {
   audioUrl: null,
   notes: [],
-  segments: [],
-  visualizerId: "bars",
-  backgroundId: "deep-field",
+  tempos: [{ time: 0, bpm: 120 }],
+  modules: DEFAULT_MODULES,
+  moduleSegments: [],
   waveform: [],
   spectrum: [],
 };

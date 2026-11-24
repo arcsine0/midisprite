@@ -1,16 +1,14 @@
-import {
-  visualizerRegistry,
-  type VisualizerId,
-} from "../../visualizers/registry";
-import {
-  backgroundRegistry,
-  type BackgroundId,
-} from "../../backgrounds/registry";
 import { instrumentSets, type InstrumentSetId } from "../audio/instrumentSets";
+import {
+  getModuleLabel,
+  moduleRegistry,
+  type ModuleId,
+  type ModuleIds,
+} from "../../visualizers/modules/registry";
 
 type Props = {
-  visualizerId: VisualizerId;
-  onVisualizerChange: (id: VisualizerId) => void;
+  modules: ModuleIds;
+  onModuleChange: (slot: number, id: ModuleId) => void;
   randomize: boolean;
   onRandomizeChange: (enabled: boolean) => void;
   segmentSeconds: number;
@@ -21,13 +19,11 @@ type Props = {
   onInstrumentSetChange: (id: InstrumentSetId) => void;
   instrumentSetBusy: boolean;
   instrumentSetError?: string;
-  backgroundId: BackgroundId;
-  onBackgroundChange: (id: BackgroundId) => void;
 };
 
 export function VisualizerControls({
-  visualizerId,
-  onVisualizerChange,
+  modules,
+  onModuleChange,
   randomize,
   onRandomizeChange,
   segmentSeconds,
@@ -38,8 +34,6 @@ export function VisualizerControls({
   onInstrumentSetChange,
   instrumentSetBusy,
   instrumentSetError,
-  backgroundId,
-  onBackgroundChange,
 }: Props) {
   return (
     <section aria-labelledby="visualizer-heading" className="mt-8 space-y-3">
@@ -47,60 +41,31 @@ export function VisualizerControls({
         className="text-xs font-semibold uppercase tracking-wider text-base-content/60"
         id="visualizer-heading"
       >
-        Visualizer
+        Modules
       </h2>
-      <label className="label" htmlFor="visualizer-style">
-        Style
-      </label>
-      <select
-        className="select select-sm w-full"
-        disabled={randomize}
-        id="visualizer-style"
-        onChange={(event) =>
-          onVisualizerChange(event.currentTarget.value as VisualizerId)
-        }
-        value={visualizerId}
-      >
-        {Array.from(new Set(visualizerRegistry.map(({ group }) => group))).map(
-          (group) => (
-            <optgroup key={group} label={group}>
-              {visualizerRegistry
-                .filter((visualizer) => visualizer.group === group)
-                .map(({ id, label }) => (
-                  <option key={id} value={id}>
-                    {label}
-                  </option>
-                ))}
-            </optgroup>
-          ),
-        )}
-      </select>
-
-      <label className="label" htmlFor="background-style">
-        Background
-      </label>
-      <select
-        className="select select-sm w-full"
-        id="background-style"
-        onChange={(event) =>
-          onBackgroundChange(event.currentTarget.value as BackgroundId)
-        }
-        value={backgroundId}
-      >
-        {Array.from(new Set(backgroundRegistry.map(({ group }) => group))).map(
-          (group) => (
-            <optgroup key={group} label={group}>
-              {backgroundRegistry
-                .filter((background) => background.group === group)
-                .map(({ id, label }) => (
-                  <option key={id} value={id}>
-                    {label}
-                  </option>
-                ))}
-            </optgroup>
-          ),
-        )}
-      </select>
+      {modules.map((module, slot) => {
+        const id = `module-${slot + 1}`;
+        return (
+          <div key={id}>
+            <label className="label" htmlFor={id}>{`Module ${slot + 1}`}</label>
+            <select
+              className="select select-sm w-full"
+              disabled={randomize}
+              id={id}
+              onChange={(event) =>
+                onModuleChange(slot, event.currentTarget.value as ModuleId)
+              }
+              value={module}
+            >
+              {moduleRegistry.map(({ id: moduleId }) => (
+                <option key={moduleId} value={moduleId}>
+                  {getModuleLabel(moduleId)}
+                </option>
+              ))}
+            </select>
+          </div>
+        );
+      })}
 
       <label
         className="label cursor-pointer justify-start gap-3"
@@ -123,7 +88,7 @@ export function VisualizerControls({
         >
           <div>
             <label className="label" htmlFor="segment-seconds">
-              Segment length (sec)
+              Segment (sec)
             </label>
             <input
               className="input input-sm w-full"

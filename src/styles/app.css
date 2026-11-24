@@ -1,8 +1,9 @@
 @import "tailwindcss";
+@import "./matrixtype.css";
 @plugin "daisyui";
 
 :root {
-  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  font-family: "MatrixType", Inter, ui-sans-serif, system-ui, sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
