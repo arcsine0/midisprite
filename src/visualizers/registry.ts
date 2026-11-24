@@ -2,9 +2,9 @@ export const visualizerRegistry = [
   { id: "bars", label: "Bar Visualizer", group: "Waveform" },
   { id: "oscillator", label: "Oscilloscope", group: "Waveform" },
   { id: "radial-bars", label: "Radial Bars", group: "Waveform" },
-  { id: "instrument-lanes", label: "Instrument Lanes", group: "MIDI" },
-  { id: "note-orbit", label: "Note Orbit", group: "MIDI" },
-  { id: "spectrum-notes", label: "Spectrum Notes", group: "Mixed" },
+  { id: "prism-burst", label: "Prism Burst", group: "MIDI" },
+  { id: "instrument-bloom", label: "Instrument Bloom", group: "MIDI" },
+  { id: "lightshow", label: "Lightshow", group: "Mixed" },
 ] as const;
 
 export type VisualizerId = (typeof visualizerRegistry)[number]["id"];

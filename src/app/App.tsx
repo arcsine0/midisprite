@@ -16,7 +16,7 @@ export function App() {
   const [midiProcessing, setMidiProcessing] = useState(false);
   const [instrumentSetBusy, setInstrumentSetBusy] = useState(false);
   const [instrumentSetError, setInstrumentSetError] = useState<string>();
-  const [visualizerId, setVisualizerId] = useState<VisualizerId>("bars");
+  const [visualizerId, setVisualizerId] = useState<VisualizerId>("lightshow");
   const [backgroundId, setBackgroundId] = useState<BackgroundId>("deep-field");
   const [randomize, setRandomize] = useState(false);
   const [segmentSeconds, setSegmentSeconds] = useState(6);

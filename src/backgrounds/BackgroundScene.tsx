@@ -1,4 +1,5 @@
 import { SPECTRUM_BANDS } from "../core/project/audioFeatures";
+import { VISUALIZER_PALETTE } from "../core/visualPalette";
 import type { BackgroundId } from "./registry";
 
 type Props = {
@@ -25,7 +26,8 @@ export function BackgroundScene({ backgroundId, frame, fps, spectrum }: Props) {
             const width = level * 390;
             const y =
               210 + ((SPECTRUM_BANDS - index - 0.5) / SPECTRUM_BANDS) * 1480;
-            const color = index < 18 ? "#00d8c8" : "#72e85b";
+            const color =
+              index < 18 ? VISUALIZER_PALETTE.cyan : VISUALIZER_PALETTE.lime;
 
             return (
               <g key={index}>
@@ -70,8 +72,7 @@ export function BackgroundScene({ backgroundId, frame, fps, spectrum }: Props) {
         className="absolute inset-0"
         style={{
           backgroundColor: "#050812",
-          backgroundImage:
-            "linear-gradient(rgba(28, 95, 104, 0.3) 2px, transparent 2px), linear-gradient(90deg, rgba(28, 95, 104, 0.3) 2px, transparent 2px), linear-gradient(150deg in oklab, #050812, #07131a 58%, #080c17)",
+          backgroundImage: `linear-gradient(rgba(34, 234, 255, 0.2) 2px, transparent 2px), linear-gradient(90deg, rgba(170, 255, 61, 0.12) 2px, transparent 2px), linear-gradient(150deg in oklab, ${VISUALIZER_PALETTE.ink}, #07131a 58%, #080c17)`,
           backgroundPosition: `0 ${offset}px, ${offset}px 0, center`,
           backgroundSize: "80px 80px, 80px 80px, 100% 100%",
         }}
@@ -85,8 +86,7 @@ export function BackgroundScene({ backgroundId, frame, fps, spectrum }: Props) {
         className="absolute inset-0"
         style={{
           backgroundColor: "#050711",
-          backgroundImage:
-            "linear-gradient(120deg in oklab, transparent 18%, rgba(0, 184, 158, 0.12) 42%, transparent 68%), linear-gradient(245deg in oklab, rgba(57, 66, 142, 0.13), transparent 48%, rgba(0, 100, 94, 0.1)), linear-gradient(180deg in oklab, #050711, #071019)",
+          backgroundImage: `linear-gradient(120deg in oklab, transparent 18%, rgba(34, 234, 255, 0.12) 42%, transparent 68%), linear-gradient(245deg in oklab, rgba(170, 255, 61, 0.08), transparent 48%, rgba(255, 212, 71, 0.06)), linear-gradient(180deg in oklab, ${VISUALIZER_PALETTE.ink}, #071019)`,
           backgroundPosition: `${driftX}% ${driftY}%, ${100 - driftX}% ${100 - driftY}%, center`,
           backgroundSize: "220% 220%, 190% 190%, 100% 100%",
         }}

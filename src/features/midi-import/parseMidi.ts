@@ -39,18 +39,20 @@ export function parseMidiFile(
     throw new Error("Could not read this MIDI file.");
   }
 
-  const notes = midi.tracks.flatMap((track, trackIndex) =>
-    track.notes.map((note) => ({
-      track: trackIndex,
-      channel: track.channel,
-      program: track.instrument.number,
-      midi: note.midi,
-      noteName: note.name,
-      velocity: note.velocity,
-      startSeconds: note.time,
-      durationSeconds: note.duration,
-    })),
-  );
+  const notes = midi.tracks
+    .flatMap((track, trackIndex) =>
+      track.notes.map((note) => ({
+        track: trackIndex,
+        channel: track.channel,
+        program: track.instrument.number,
+        midi: note.midi,
+        noteName: note.name,
+        velocity: note.velocity,
+        startSeconds: note.time,
+        durationSeconds: note.duration,
+      })),
+    )
+    .sort((a, b) => a.startSeconds - b.startSeconds);
 
   const result = midiProjectSchema.safeParse({
     filename,
