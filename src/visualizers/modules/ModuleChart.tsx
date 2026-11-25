@@ -44,7 +44,7 @@ export function ModuleChart({
     chart = Array.from({ length: SPECTRUM_BANDS }, (_, index) => {
       const value = level(index);
       const height = 16 + value * 238;
-      const x = 20 + (index / SPECTRUM_BANDS) * 434;
+      const x = 20 + (index / SPECTRUM_BANDS) * 452;
       return (
         <rect
           key={index}
@@ -60,7 +60,7 @@ export function ModuleChart({
   } else if (id === "spectrum") {
     const points = Array.from({ length: SPECTRUM_BANDS * 2 }, (_, index) => {
       const value = level(Math.floor(index / 2));
-      const x = 20 + index * 6.8;
+      const x = 20 + (index / (SPECTRUM_BANDS * 2 - 1)) * 452;
       const y =
         340 -
         value * 220 -
@@ -86,7 +86,7 @@ export function ModuleChart({
         {[54, 100, 146].map((radius) => (
           <circle
             key={radius}
-            cx="237"
+            cx="246"
             cy="246"
             fill="none"
             r={radius}
@@ -101,14 +101,14 @@ export function ModuleChart({
             Math.PI / 2;
           const key = getInstrumentKey(note);
           const pulse = Math.min(1, active.get(key) ?? 0);
-          const x = 237 + Math.cos(angle) * 146;
+          const x = 246 + Math.cos(angle) * 146;
           const y = 246 + Math.sin(angle) * 146;
           return (
             <g key={key}>
               <line
                 stroke={getInstrumentColor(note)}
                 strokeOpacity="0.5"
-                x1="237"
+                x1="246"
                 x2={x}
                 y1="246"
                 y2={y}
@@ -130,13 +130,13 @@ export function ModuleChart({
             </g>
           );
         })}
-        <circle cx="237" cy="246" fill="#dffefa" r="4" />
+        <circle cx="246" cy="246" fill="#dffefa" r="4" />
       </>
     );
   } else {
     chart = notes.slice(-80).map((note, index) => {
       const x =
-        22 + (((note.startSeconds - Math.max(0, time - 8)) % 8) / 8) * 425;
+        22 + (((note.startSeconds - Math.max(0, time - 8)) % 8) / 8) * 448;
       const y = 96 + ((127 - note.midi) / 127) * 250;
       return (
         <circle
@@ -155,7 +155,7 @@ export function ModuleChart({
     <svg
       aria-hidden="true"
       className="block h-full w-full"
-      viewBox="0 0 474 474"
+      viewBox="0 0 492 474"
     >
       {chart}
     </svg>

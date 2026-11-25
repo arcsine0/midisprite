@@ -21,21 +21,18 @@ type Props = {
   spectrum: number[];
 };
 
-const PANEL = "#080e15";
 const GRID = "#1a2933";
 const MUTED = "#78909b";
 const WHITE = "#d6e5e8";
 const MODULE_POSITIONS = [
   [48, 132],
-  [558, 132],
+  [540, 132],
   [48, 1304],
-  [558, 1304],
+  [540, 1304],
 ] as const;
-const PANEL_WIDTH = 474;
+const PANEL_WIDTH = 492;
 const PANEL_HEIGHT = 474;
-const ROLL = { x: 48, y: 630, width: 984, height: 650 };
-const MIN_PITCH = 0;
-const MAX_PITCH = 127;
+const ROLL = { x: 48, y: 614, width: 984, height: 682 };
 
 function getNotesInRange(
   notes: MidiNote[],
@@ -98,6 +95,26 @@ export function DashboardScene({
       ),
     [notes],
   );
+  const { minPitch, maxPitch } = useMemo(() => {
+    if (notes.length === 0) return { minPitch: 60, maxPitch: 72 };
+    const lowest = notes.reduce(
+      (pitch, note) => Math.min(pitch, note.midi),
+      127,
+    );
+    const highest = notes.reduce(
+      (pitch, note) => Math.max(pitch, note.midi),
+      0,
+    );
+    let minPitch = Math.max(0, lowest - 1);
+    let maxPitch = Math.min(127, highest + 1);
+    if (maxPitch - minPitch < 12) {
+      const center = (lowest + highest) / 2;
+      minPitch = Math.max(0, Math.floor(center - 6));
+      maxPitch = Math.min(127, minPitch + 12);
+      minPitch = Math.max(0, maxPitch - 12);
+    }
+    return { minPitch, maxPitch };
+  }, [notes]);
   const rollStart = Math.max(0, time - 2);
   const rollEnd = rollStart + 8;
   const rollNotes = getNotesInRange(
@@ -107,12 +124,13 @@ export function DashboardScene({
   ).filter(
     (note) =>
       note.startSeconds + note.durationSeconds > rollStart &&
-      note.midi >= MIN_PITCH &&
-      note.midi <= MAX_PITCH,
+      note.midi >= minPitch &&
+      note.midi <= maxPitch,
   );
   const pitchNotes = getNotesInRange(notes, Math.max(0, time - 8), time);
   const pitchHeight = ROLL.height - 76;
-  const noteHeight = pitchHeight / (MAX_PITCH - MIN_PITCH + 1);
+  const pitchCount = maxPitch - minPitch + 1;
+  const noteHeight = pitchHeight / pitchCount;
   const playheadX = ((time - rollStart) / 8) * (ROLL.width - 60);
   const tempo = tempos.reduce(
     (current, item) => (item.time <= time ? item.bpm : current),
@@ -143,6 +161,29 @@ export function DashboardScene({
         style={{ inset: 0, position: "absolute" }}
         viewBox="0 0 1080 1920"
       >
+        <defs>
+          <linearGradient id="monitor-metal" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stopColor="#667178" />
+            <stop offset="18%" stopColor="#3c474e" />
+            <stop offset="72%" stopColor="#29333a" />
+            <stop offset="100%" stopColor="#161d22" />
+          </linearGradient>
+          <filter
+            height="140%"
+            id="monitor-shadow"
+            width="125%"
+            x="-12%"
+            y="-12%"
+          >
+            <feDropShadow
+              dx="0"
+              dy="7"
+              floodColor="#000000"
+              floodOpacity="0.76"
+              stdDeviation="6"
+            />
+          </filter>
+        </defs>
         <rect fill="#04080c" height="1920" width="1080" />
         <text
           fill={WHITE}
@@ -179,13 +220,40 @@ export function DashboardScene({
         ))}
 
         <g transform={`translate(${ROLL.x} ${ROLL.y})`}>
-          <rect
-            fill={PANEL}
-            height={ROLL.height}
-            stroke={GRID}
-            strokeWidth="2"
-            width={ROLL.width}
+          <path
+            d={`M16 0 H${ROLL.width - 16} L${ROLL.width} 16 V${ROLL.height - 16} L${ROLL.width - 16} ${ROLL.height} H16 L0 ${ROLL.height - 16} V16 Z`}
+            fill="url(#monitor-metal)"
+            filter="url(#monitor-shadow)"
+            stroke="#10171b"
+            strokeWidth="3"
           />
+          <path
+            d={`M18 7 H${ROLL.width - 18} L${ROLL.width - 7} 18 V${ROLL.height - 18} L${ROLL.width - 18} ${ROLL.height - 7} H18 L7 ${ROLL.height - 18} V18 Z`}
+            fill="none"
+            opacity="0.7"
+            stroke="#78838a"
+            strokeWidth="2"
+          />
+          <rect
+            fill="#141d22"
+            height={ROLL.height - 70}
+            stroke="#0a1014"
+            strokeWidth="3"
+            width={ROLL.width - 24}
+            x="12"
+            y="48"
+          />
+          <rect
+            fill="#050b10"
+            height={ROLL.height - 76}
+            width={ROLL.width - 32}
+            x="20"
+            y="50"
+          />
+          <MonitorScrew x={14} y={14} />
+          <MonitorScrew x={ROLL.width - 14} y={14} />
+          <MonitorScrew x={14} y={ROLL.height - 14} />
+          <MonitorScrew x={ROLL.width - 14} y={ROLL.height - 14} />
           <text
             fill={WHITE}
             fontFamily="MatrixType"
@@ -207,8 +275,8 @@ export function DashboardScene({
             {instrumentCount} PARTS / {notes.length} EVENTS
           </text>
           <g transform="translate(44 50)">
-            {Array.from({ length: MAX_PITCH - MIN_PITCH + 1 }, (_, index) => {
-              const pitch = MAX_PITCH - index;
+            {Array.from({ length: pitchCount }, (_, index) => {
+              const pitch = maxPitch - index;
               const y = index * noteHeight;
               const octave = pitch % 12 === 0;
               return (
@@ -267,7 +335,7 @@ export function DashboardScene({
                 3,
                 ((visibleEnd - visibleStart) / 8) * (ROLL.width - 60),
               );
-              const y = (MAX_PITCH - note.midi) * noteHeight + 1;
+              const y = (maxPitch - note.midi) * noteHeight + 1;
               return (
                 <rect
                   key={`${note.track}-${note.startSeconds}-${note.midi}-${index}`}
@@ -399,19 +467,54 @@ function ModulePanel({
 }) {
   return (
     <g>
-      <rect
-        fill={PANEL}
-        height={PANEL_HEIGHT}
-        stroke={GRID}
-        strokeWidth="2"
-        width={PANEL_WIDTH}
+      <path
+        d={`M12 0 H${PANEL_WIDTH - 12} L${PANEL_WIDTH} 12 V${PANEL_HEIGHT - 12} L${PANEL_WIDTH - 12} ${PANEL_HEIGHT} H12 L0 ${PANEL_HEIGHT - 12} V12 Z`}
+        fill="url(#monitor-metal)"
+        filter="url(#monitor-shadow)"
+        stroke="#10171b"
+        strokeWidth="3"
       />
+      <path
+        d={`M17 7 H${PANEL_WIDTH - 17} L${PANEL_WIDTH - 7} 17 V${PANEL_HEIGHT - 17} L${PANEL_WIDTH - 17} ${PANEL_HEIGHT - 7} H17 L7 ${PANEL_HEIGHT - 17} V17 Z`}
+        fill="none"
+        opacity="0.7"
+        stroke="#78838a"
+        strokeWidth="2"
+      />
+      <rect
+        fill="#141d22"
+        height="354"
+        stroke="#0a1014"
+        strokeWidth="3"
+        width={PANEL_WIDTH - 28}
+        x="14"
+        y="48"
+      />
+      <rect
+        fill="#050b10"
+        height="342"
+        width={PANEL_WIDTH - 40}
+        x="20"
+        y="54"
+      />
+      <g stroke={GRID} strokeWidth="1">
+        {[24, 172, 320, 468].map((x) => (
+          <line key={`v${x}`} x1={x} x2={x} y1="70" y2="388" />
+        ))}
+        {[118, 218, 318].map((y) => (
+          <line key={`h${y}`} x1="20" x2="472" y1={y} y2={y} />
+        ))}
+      </g>
+      <MonitorScrew x={14} y={14} />
+      <MonitorScrew x={PANEL_WIDTH - 14} y={14} />
+      <MonitorScrew x={14} y={PANEL_HEIGHT - 14} />
+      <MonitorScrew x={PANEL_WIDTH - 14} y={PANEL_HEIGHT - 14} />
       <text
         fill={WHITE}
         fontFamily="MatrixType"
         fontSize="18"
         fontWeight="700"
-        x="18"
+        x="30"
         y="30"
       >
         {getModuleLabel(id).toUpperCase()}
@@ -421,33 +524,14 @@ function ModulePanel({
         fontFamily="MatrixType"
         fontSize="13"
         textAnchor="end"
-        x={PANEL_WIDTH - 18}
+        x={PANEL_WIDTH - 38}
         y="30"
       >
         {id === "bars" || id === "spectrum" || id === "oscillator"
           ? "AUDIO / LIVE"
           : "MIDI / LIVE"}
       </text>
-      <g stroke={GRID} strokeWidth="1">
-        {[0, 1, 2, 3].map((index) => (
-          <line
-            key={`v${index}`}
-            x1={24 + index * 142}
-            x2={24 + index * 142}
-            y1="70"
-            y2="388"
-          />
-        ))}
-        {[0, 1, 2].map((index) => (
-          <line
-            key={`h${index}`}
-            x1="20"
-            x2="454"
-            y1={118 + index * 100}
-            y2={118 + index * 100}
-          />
-        ))}
-      </g>
+      <circle cx={PANEL_WIDTH - 20} cy="25" fill="#8caa6b" r="3" />
       <text fill={MUTED} fontFamily="MatrixType" fontSize="12" x="18" y="425">
         {id === "orbit" || id === "pitch-map"
           ? `${instrumentCount} INSTRUMENTS`
@@ -461,6 +545,26 @@ function ModulePanel({
         x={PANEL_WIDTH - 18}
         y="425"
       >{`LEVEL ${Math.max(0, ...spectrum.slice(spectrumStart, spectrumStart + SPECTRUM_BANDS)).toFixed(2)}`}</text>
+    </g>
+  );
+}
+
+function MonitorScrew({ x, y }: { x: number; y: number }) {
+  return (
+    <g>
+      <circle
+        cx={x}
+        cy={y}
+        fill="#141a1e"
+        r="5"
+        stroke="#7c878b"
+        strokeWidth="2"
+      />
+      <path
+        d={`M${x - 2} ${y + 2} L${x + 2} ${y - 2}`}
+        stroke="#080c0f"
+        strokeWidth="1.5"
+      />
     </g>
   );
 }
