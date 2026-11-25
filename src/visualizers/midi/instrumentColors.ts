@@ -13,3 +13,7 @@ export function getInstrumentColor(note: MidiNote) {
 export function getInstrumentKey(note: MidiNote) {
   return `${note.track}:${note.channel}:${note.program}`;
 }
+
+export function getLaunchpadKey(note: MidiNote) {
+  return note.channel === 9 ? `drum:${note.midi}` : getInstrumentKey(note);
+}

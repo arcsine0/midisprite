@@ -4,7 +4,11 @@ import {
   SPECTRUM_BANDS,
   WAVEFORM_SAMPLES_PER_FRAME,
 } from "../../core/project/audioFeatures";
-import { getInstrumentColor, getInstrumentKey } from "../midi/instrumentColors";
+import {
+  getInstrumentColor,
+  getInstrumentKey,
+  getLaunchpadKey,
+} from "../midi/instrumentColors";
 import { getRecentNoteEvents } from "../midi/recentNoteEvents";
 import { ModuleChart } from "./ModuleChart";
 import { PixelatedLayer } from "./PixelatedLayer";
@@ -14,6 +18,7 @@ type Props = {
   frame: number;
   fps: number;
   modules: ModuleIds;
+  moduleEffects: { opacity: number; offset: number }[];
   notes: MidiNote[];
   pixelationSupported: boolean;
   tempos: MidiTempo[];
@@ -60,6 +65,7 @@ export function DashboardScene({
   frame,
   fps,
   modules,
+  moduleEffects,
   notes,
   pixelationSupported,
   tempos,
@@ -68,24 +74,57 @@ export function DashboardScene({
 }: Props) {
   const time = frame / fps;
   const sampleStart = frame * WAVEFORM_SAMPLES_PER_FRAME;
+  let waveformLevel = 0;
   const waveformPoints = Array.from(
     { length: WAVEFORM_SAMPLES_PER_FRAME },
     (_, index) => {
+      const sample = waveform[sampleStart + index] ?? 0;
+      waveformLevel = Math.max(waveformLevel, Math.abs(sample));
       const x = 24 + (index / (WAVEFORM_SAMPLES_PER_FRAME - 1)) * 426;
-      const y = 236 - (waveform[sampleStart + index] ?? 0) * 160;
+      const y = 236 - sample * 160;
       return `${x},${y}`;
     },
   );
+  const waveformPeak = (offset: number) => {
+    let peak = 0;
+    for (
+      let index = offset;
+      index < offset + WAVEFORM_SAMPLES_PER_FRAME;
+      index++
+    ) {
+      peak = Math.max(peak, Math.abs(waveform[index] ?? 0));
+    }
+    return peak;
+  };
+  let beatPulse = 0;
+  for (let age = 0; age < 4; age++) {
+    const currentFrame = frame - age;
+    if (currentFrame <= 0) continue;
+    const start = currentFrame * WAVEFORM_SAMPLES_PER_FRAME;
+    const attack = Math.max(
+      0,
+      waveformPeak(start) -
+        waveformPeak(start - WAVEFORM_SAMPLES_PER_FRAME) -
+        0.025,
+    );
+    beatPulse = Math.max(
+      beatPulse,
+      Math.min(1, attack * 16) * Math.exp(-age / 2),
+    );
+  }
   const spectrumStart = frame * SPECTRUM_BANDS;
   const recentNotes = getRecentNoteEvents(notes, time, 1.5);
-  const { instruments, instrumentCount } = useMemo(() => {
-    const byInstrument = new Map(
-      notes.map((note) => [getInstrumentKey(note), note]),
-    );
-    return {
-      instruments: Array.from(byInstrument.values()).slice(0, 10),
-      instrumentCount: byInstrument.size,
-    };
+  const instrumentCount = useMemo(
+    () => new Set(notes.map(getInstrumentKey)).size,
+    [notes],
+  );
+  const launchpadPads = useMemo(() => {
+    const pads = new Map<string, MidiNote>();
+    for (const note of notes) {
+      pads.set(getLaunchpadKey(note), note);
+      if (pads.size === 16) break;
+    }
+    return Array.from(pads.values());
   }, [notes]);
   const maxNoteDuration = useMemo(
     () =>
@@ -208,11 +247,17 @@ export function DashboardScene({
         <line stroke={GRID} strokeWidth="2" x1="48" x2="1032" y1="92" y2="92" />
 
         {MODULE_POSITIONS.map(([x, y], slot) => (
-          <g key={slot} transform={`translate(${x} ${y})`}>
+          <g
+            key={slot}
+            opacity={moduleEffects[slot].opacity}
+            transform={`translate(${x + moduleEffects[slot].offset} ${y})`}
+          >
             <ModulePanel
               frame={frame}
               id={modules[slot]}
+              activeEventCount={recentNotes.length}
               instrumentCount={instrumentCount}
+              launchpadPadCount={launchpadPads.length}
               spectrum={spectrum}
               spectrumStart={spectrumStart}
             />
@@ -428,15 +473,20 @@ export function DashboardScene({
               style={{
                 height: PANEL_HEIGHT,
                 left,
+                opacity: moduleEffects[slot].opacity,
                 position: "absolute",
                 top,
+                transform: `translateX(${moduleEffects[slot].offset}px)`,
                 width: PANEL_WIDTH,
               }}
             >
               <ModuleChart
+                beatPulse={beatPulse}
                 frame={frame}
                 id={modules[slot]}
-                instruments={instruments}
+                launchpadPads={launchpadPads}
+                maxPitch={maxPitch}
+                minPitch={minPitch}
                 notes={pitchNotes}
                 recentNotes={recentNotes}
                 spectrum={spectrum}
@@ -453,15 +503,19 @@ export function DashboardScene({
 }
 
 function ModulePanel({
+  activeEventCount,
   frame,
   id,
   instrumentCount,
+  launchpadPadCount,
   spectrum,
   spectrumStart,
 }: {
+  activeEventCount: number;
   frame: number;
   id: ModuleId;
   instrumentCount: number;
+  launchpadPadCount: number;
   spectrum: number[];
   spectrumStart: number;
 }) {
@@ -527,15 +581,26 @@ function ModulePanel({
         x={PANEL_WIDTH - 38}
         y="30"
       >
-        {id === "bars" || id === "spectrum" || id === "oscillator"
+        {id === "bars" ||
+        id === "spectrum" ||
+        id === "oscillator" ||
+        id === "beat-pulse"
           ? "AUDIO / LIVE"
           : "MIDI / LIVE"}
       </text>
       <circle cx={PANEL_WIDTH - 20} cy="25" fill="#8caa6b" r="3" />
       <text fill={MUTED} fontFamily="MatrixType" fontSize="12" x="18" y="425">
-        {id === "orbit" || id === "pitch-map"
-          ? `${instrumentCount} INSTRUMENTS`
-          : `FRAME ${frame}`}
+        {id === "launchpad"
+          ? `${launchpadPadCount} SOURCES`
+          : id === "singer"
+            ? "GM VOICE / LEAD"
+            : id === "orbit"
+              ? `${instrumentCount} INSTRUMENTS`
+              : id === "pitch-map"
+                ? "PITCH / INTENSITY"
+                : id === "beat-pulse"
+                  ? "WAVEFORM PEAK"
+                  : `FRAME ${frame}`}
       </text>
       <text
         fill={MUTED}
@@ -544,7 +609,13 @@ function ModulePanel({
         textAnchor="end"
         x={PANEL_WIDTH - 18}
         y="425"
-      >{`LEVEL ${Math.max(0, ...spectrum.slice(spectrumStart, spectrumStart + SPECTRUM_BANDS)).toFixed(2)}`}</text>
+      >
+        {id === "launchpad" || id === "singer" || id === "orbit"
+          ? `ACTIVE ${activeEventCount}`
+          : id === "pitch-map"
+            ? "8 SEC WINDOW"
+            : `LEVEL ${Math.max(0, ...spectrum.slice(spectrumStart, spectrumStart + SPECTRUM_BANDS)).toFixed(2)}`}
+      </text>
     </g>
   );
 }

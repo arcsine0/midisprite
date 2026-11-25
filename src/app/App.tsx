@@ -14,7 +14,8 @@ import { VisualizerControls } from "../features/preview/VisualizerControls";
 
 export function App() {
   const [processedMidi, setProcessedMidi] = useState<ProcessedMidi>();
-  const [instrumentSetId, setInstrumentSetId] = useState<InstrumentSetId>("gm");
+  const [instrumentSetId, setInstrumentSetId] =
+    useState<InstrumentSetId>("arcade");
   const [midiProcessing, setMidiProcessing] = useState(false);
   const [instrumentSetBusy, setInstrumentSetBusy] = useState(false);
   const [instrumentSetError, setInstrumentSetError] = useState<string>();

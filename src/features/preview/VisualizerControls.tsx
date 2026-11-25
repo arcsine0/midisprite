@@ -1,6 +1,7 @@
 import { instrumentSets, type InstrumentSetId } from "../audio/instrumentSets";
 import {
   getModuleLabel,
+  getModuleExclusiveGroup,
   moduleRegistry,
   type ModuleId,
   type ModuleIds,
@@ -57,11 +58,22 @@ export function VisualizerControls({
               }
               value={module}
             >
-              {moduleRegistry.map(({ id: moduleId }) => (
-                <option key={moduleId} value={moduleId}>
-                  {getModuleLabel(moduleId)}
-                </option>
-              ))}
+              {moduleRegistry.map(({ id: moduleId }) => {
+                const group = getModuleExclusiveGroup(moduleId);
+                const conflicts =
+                  moduleId !== module &&
+                  group !== undefined &&
+                  modules.some(
+                    (selected, selectedSlot) =>
+                      selectedSlot !== slot &&
+                      getModuleExclusiveGroup(selected) === group,
+                  );
+                return (
+                  <option disabled={conflicts} key={moduleId} value={moduleId}>
+                    {getModuleLabel(moduleId)}
+                  </option>
+                );
+              })}
             </select>
           </div>
         );

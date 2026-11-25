@@ -3,6 +3,7 @@ import type { MidiNote, MidiTempo } from "../../core/project/midiProject";
 import type { ModuleIds } from "../../visualizers/modules/registry";
 import type { ModuleSegment } from "../../visualizers/modules/planModules";
 import { VideoComposition } from "../../remotion/compositions/VideoComposition";
+import { VIDEO_FPS } from "../../core/timeline/constants";
 
 type Props = {
   audioUrl: string | null;
@@ -34,7 +35,7 @@ export function PreviewPanel({
           compositionHeight={1920}
           compositionWidth={1080}
           durationInFrames={durationInFrames}
-          fps={30}
+          fps={VIDEO_FPS}
           controls
           inputProps={{
             audioUrl,
