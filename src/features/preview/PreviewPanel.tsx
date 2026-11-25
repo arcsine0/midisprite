@@ -7,6 +7,7 @@ import { VIDEO_FPS } from "../../core/timeline/constants";
 
 type Props = {
   audioUrl: string | null;
+  filename: string;
   durationInFrames: number;
   notes: MidiNote[];
   modules: ModuleIds;
@@ -18,6 +19,7 @@ type Props = {
 
 export function PreviewPanel({
   audioUrl,
+  filename,
   durationInFrames,
   notes,
   modules,
@@ -39,6 +41,7 @@ export function PreviewPanel({
           controls
           inputProps={{
             audioUrl,
+            filename,
             notes,
             tempos,
             modules,

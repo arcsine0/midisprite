@@ -17,6 +17,8 @@ import { getModuleLabel, type ModuleId, type ModuleIds } from "./registry";
 type Props = {
   frame: number;
   fps: number;
+  durationInFrames: number;
+  filename: string;
   modules: ModuleIds;
   moduleEffects: { opacity: number; offset: number }[];
   notes: MidiNote[];
@@ -38,6 +40,59 @@ const MODULE_POSITIONS = [
 const PANEL_WIDTH = 492;
 const PANEL_HEIGHT = 474;
 const ROLL = { x: 48, y: 614, width: 984, height: 682 };
+const TITLE_GLITCH_CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789#$%&*+?";
+
+function getTitleText(
+  filename: string,
+  frame: number,
+  durationInFrames: number,
+  fps: number,
+) {
+  if (!filename) return "NO MIDI FILE";
+
+  const characters = Array.from(filename);
+  const transitionFrames = Math.min(
+    Math.ceil(fps * 0.8),
+    Math.max(1, Math.floor(durationInFrames / 3)),
+  );
+  if (frame < transitionFrames) {
+    const settled = Math.floor((frame / transitionFrames) * characters.length);
+    return characters
+      .map((character, index) =>
+        index < settled
+          ? character
+          : getGlitchCharacter(frame, index, character),
+      )
+      .join("");
+  }
+
+  const outroStart = durationInFrames - transitionFrames;
+  if (frame >= outroStart) {
+    if (frame >= durationInFrames - 1) return "";
+    const removed = Math.floor(
+      ((frame - outroStart) / transitionFrames) * characters.length,
+    );
+    const flickerIndex = characters.length - removed - 1;
+    return flickerIndex < 0
+      ? ""
+      : `${characters.slice(0, flickerIndex).join("")}${getGlitchCharacter(frame, flickerIndex, characters[flickerIndex])}`;
+  }
+
+  return filename;
+}
+
+function getGlitchCharacter(frame: number, index: number, character: string) {
+  if (character === " ") return character;
+  const hash =
+    ((frame + 1) * 31 + (index + 1) * 17 + character.codePointAt(0)!) >>> 0;
+  const glitchIndex = hash % TITLE_GLITCH_CHARACTERS.length;
+  const glitchCharacter = TITLE_GLITCH_CHARACTERS[glitchIndex];
+  return glitchCharacter === character.toUpperCase()
+    ? TITLE_GLITCH_CHARACTERS[
+        (glitchIndex + 1) % TITLE_GLITCH_CHARACTERS.length
+      ]
+    : glitchCharacter;
+}
 
 function getNotesInRange(
   notes: MidiNote[],
@@ -62,6 +117,8 @@ function getNotesInRange(
 }
 
 export function DashboardScene({
+  durationInFrames,
+  filename,
   frame,
   fps,
   modules,
@@ -73,6 +130,7 @@ export function DashboardScene({
   spectrum,
 }: Props) {
   const time = frame / fps;
+  const titleText = getTitleText(filename, frame, durationInFrames, fps);
   const sampleStart = frame * WAVEFORM_SAMPLES_PER_FRAME;
   let waveformLevel = 0;
   const waveformPoints = Array.from(
@@ -232,7 +290,7 @@ export function DashboardScene({
           x="48"
           y="66"
         >
-          MIDISPRITE / SIGNAL ANALYZER
+          {titleText}
         </text>
         <text
           fill={MUTED}

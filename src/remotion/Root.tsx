@@ -6,6 +6,7 @@ import { VIDEO_FPS } from "../core/timeline/constants";
 
 const defaultProps: VideoCompositionProps = {
   audioUrl: null,
+  filename: "",
   notes: [],
   tempos: [{ time: 0, bpm: 120 }],
   modules: DEFAULT_MODULES,

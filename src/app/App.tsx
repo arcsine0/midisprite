@@ -127,6 +127,7 @@ export function App() {
       </aside>
       <PreviewPanel
         audioUrl={processedMidi?.audioUrl ?? null}
+        filename={processedMidi?.project.filename ?? ""}
         durationInFrames={durationInFrames}
         notes={processedMidi?.project.notes ?? []}
         tempos={processedMidi?.project.tempos ?? []}
