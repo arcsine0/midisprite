@@ -51,8 +51,14 @@ input {
   display: flex;
   min-block-size: 3.5rem;
   align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
   border-block-end: 1px solid var(--color-base-300);
   padding-inline: 1.25rem;
+}
+
+.studio-brand .tabs {
+  flex: none;
 }
 
 .studio-brand h1 {

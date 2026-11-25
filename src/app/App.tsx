@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { secondsToFrames, VIDEO_FPS } from "../core/timeline/constants";
 import { synthesizeMidi } from "../features/audio/synthesizeMidi";
 import type { InstrumentSetId } from "../features/audio/instrumentSets";
+import { RenderPanel } from "../features/export/RenderPanel";
 import { MidiImportPanel } from "../features/midi-import/MidiImportPanel";
 import type { ProcessedMidi } from "../features/midi-import/types";
 import { planModuleSequence } from "../visualizers/modules/planModules";
@@ -23,6 +24,7 @@ export function App() {
   const [randomize, setRandomize] = useState(false);
   const [segmentSeconds, setSegmentSeconds] = useState(6);
   const [seed, setSeed] = useState(1);
+  const [sidebarTab, setSidebarTab] = useState<"preview" | "render">("preview");
 
   async function changeInstrumentSet(nextSet: InstrumentSetId) {
     const previousSet = instrumentSetId;
@@ -84,49 +86,103 @@ export function App() {
       <aside aria-label="Controls" className="studio-sidebar">
         <header className="studio-brand">
           <h1>Midisprite</h1>
+          <div
+            aria-label="Studio panels"
+            className="tabs tabs-border tabs-xs"
+            role="tablist"
+          >
+            {(["preview", "render"] as const).map((tab, index, tabs) => (
+              <button
+                aria-selected={sidebarTab === tab}
+                className={`tab ${sidebarTab === tab ? "tab-active" : ""}`}
+                id={`${tab}-tab`}
+                key={tab}
+                onClick={() => setSidebarTab(tab)}
+                onKeyDown={(event) => {
+                  if (event.key !== "ArrowLeft" && event.key !== "ArrowRight")
+                    return;
+                  event.preventDefault();
+                  const direction = event.key === "ArrowRight" ? 1 : -1;
+                  const next =
+                    tabs[(index + direction + tabs.length) % tabs.length];
+                  setSidebarTab(next);
+                  document.getElementById(`${next}-tab`)?.focus();
+                }}
+                role="tab"
+                type="button"
+              >
+                {tab === "preview" ? "Preview" : "Render"}
+              </button>
+            ))}
+          </div>
         </header>
-        <div className="studio-sidebar-scroll">
-          <MidiImportPanel
-            disabled={instrumentSetBusy}
-            instrumentSetId={instrumentSetId}
-            onProcessed={setProcessedMidi}
-            onProcessingChange={setMidiProcessing}
-          />
-          <VisualizerControls
-            modules={modules}
-            onModuleChange={(slot, id) =>
-              setModules(
-                (current) =>
-                  current.map((module, index) =>
-                    index === slot ? id : module,
-                  ) as ModuleIds,
-              )
-            }
-            onRandomizeChange={setRandomize}
-            randomize={randomize}
-            onInstrumentSetChange={changeInstrumentSet}
-            onSeedChange={(value) =>
-              setSeed(
-                Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 1,
-              )
-            }
-            onSegmentSecondsChange={(value) =>
-              setSegmentSeconds(
-                Number.isFinite(value)
-                  ? Math.min(60, Math.max(1, Math.round(value)))
-                  : 6,
-              )
-            }
-            instrumentSetBusy={instrumentSetBusy || midiProcessing}
-            instrumentSetError={instrumentSetError}
-            instrumentSetId={instrumentSetId}
-            seed={seed}
-            segmentSeconds={segmentSeconds}
-          />
+        <div
+          aria-labelledby={`${sidebarTab}-tab`}
+          className="studio-sidebar-scroll"
+          role="tabpanel"
+          tabIndex={0}
+        >
+          {sidebarTab === "preview" ? (
+            <>
+              <MidiImportPanel
+                disabled={instrumentSetBusy}
+                instrumentSetId={instrumentSetId}
+                onProcessed={setProcessedMidi}
+                onProcessingChange={setMidiProcessing}
+              />
+              <VisualizerControls
+                modules={modules}
+                onModuleChange={(slot, id) =>
+                  setModules(
+                    (current) =>
+                      current.map((module, index) =>
+                        index === slot ? id : module,
+                      ) as ModuleIds,
+                  )
+                }
+                onRandomizeChange={setRandomize}
+                randomize={randomize}
+                onInstrumentSetChange={changeInstrumentSet}
+                onSeedChange={(value) =>
+                  setSeed(
+                    Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 1,
+                  )
+                }
+                onSegmentSecondsChange={(value) =>
+                  setSegmentSeconds(
+                    Number.isFinite(value)
+                      ? Math.min(60, Math.max(1, Math.round(value)))
+                      : 6,
+                  )
+                }
+                instrumentSetBusy={instrumentSetBusy || midiProcessing}
+                instrumentSetError={instrumentSetError}
+                instrumentSetId={instrumentSetId}
+                seed={seed}
+                segmentSeconds={segmentSeconds}
+              />
+            </>
+          ) : (
+            <RenderPanel
+              disabled={midiProcessing || instrumentSetBusy}
+              inputProps={{
+                audioUrl: processedMidi?.audioUrl ?? null,
+                durationSeconds: processedMidi?.project.durationSeconds ?? 0,
+                filename: processedMidi?.project.filename ?? "",
+                notes: processedMidi?.project.notes ?? [],
+                tempos: processedMidi?.project.tempos ?? [],
+                modules,
+                moduleSegments: segments,
+                waveform: processedMidi?.waveform ?? [],
+                spectrum: processedMidi?.spectrum ?? [],
+              }}
+            />
+          )}
         </div>
       </aside>
       <PreviewPanel
         audioUrl={processedMidi?.audioUrl ?? null}
+        durationSeconds={processedMidi?.project.durationSeconds ?? 0}
         filename={processedMidi?.project.filename ?? ""}
         durationInFrames={durationInFrames}
         notes={processedMidi?.project.notes ?? []}

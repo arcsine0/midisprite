@@ -1,5 +1,6 @@
 import { useState, type ChangeEvent } from "react";
 import { synthesizeMidi } from "../audio/synthesizeMidi";
+import { WorkflowProgress } from "../../components/ui/WorkflowProgress";
 import type { InstrumentSetId } from "../audio/instrumentSets";
 import { parseMidiFile } from "./parseMidi";
 import type { ProcessedMidi } from "./types";
@@ -177,70 +178,18 @@ export function MidiImportPanel({
         {processing ? "Processing…" : "Process"}
       </button>
       {progress && (
-        <div className="space-y-1.5">
-          {/* shortcut: Tone.Offline exposes no render progress, replace when synthesis supports progress callbacks. */}
-          <progress
-            aria-label="MIDI processing"
-            aria-valuetext={
-              progress.stage === "audio" && progress.percent === 50
-                ? "Synthesizing audio, 50% of steps"
-                : progress.stage === "render"
-                  ? "Rendering offline audio"
-                  : progress.stage === "analysis"
-                    ? "Analyzing synthesized audio"
-                    : `${progress.stage}, ${progress.percent}%`
-            }
-            className="progress progress-primary h-1.5 w-full"
-            max={100}
-            value={
-              progress.stage === "render" ||
-              progress.stage === "analysis" ||
-              (progress.stage === "audio" && progress.percent === 50)
-                ? undefined
-                : progress.percent
-            }
-          />
-          <div className="flex items-center justify-between gap-2">
-            <ol aria-label="Processing steps" className="flex gap-2">
-              {PROCESS_STEPS.map(({ id, label }) => {
-                const active = progress.stage === id;
-                const complete =
-                  progress.stage === "ready" ||
-                  PROCESS_STEPS.findIndex((step) => step.id === id) <
-                    PROCESS_STEPS.findIndex(
-                      (step) => step.id === progress.stage,
-                    );
-                return (
-                  <li
-                    className={`flex items-center gap-1 text-[9px] font-medium tracking-wide ${
-                      active
-                        ? "text-primary"
-                        : complete
-                          ? "text-base-content/60"
-                          : "text-base-content/30"
-                    }`}
-                    key={id}
-                  >
-                    <span
-                      aria-hidden="true"
-                      className={`size-1.5 rounded-full ${
-                        active || complete ? "bg-primary" : "bg-base-content/20"
-                      }`}
-                    />
-                    {label}
-                  </li>
-                );
-              })}
-            </ol>
-            <span className="font-mono text-[10px] tabular-nums">
-              {progress.stage === "render"
-                ? "RENDERING"
-                : progress.stage === "analysis"
-                  ? "ANALYZING"
-                  : `${progress.percent}%`}
-            </span>
-          </div>
-        </div>
+        <WorkflowProgress
+          activeStep={progress.stage}
+          complete={progress.stage === "ready"}
+          indeterminate={
+            progress.stage === "render" ||
+            progress.stage === "analysis" ||
+            (progress.stage === "audio" && progress.percent === 50)
+          }
+          label="MIDI processing"
+          percent={progress.percent}
+          steps={PROCESS_STEPS}
+        />
       )}
       {error && (
         <p className="text-sm text-error" role="alert">
