@@ -68,7 +68,7 @@ export function RenderPanel({ disabled, inputProps }: Props) {
       cancelled = true;
       window.clearTimeout(timeout);
     };
-  }, [job?.filename, rendering]);
+  }, [job?.id, rendering]);
 
   async function startRender(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
